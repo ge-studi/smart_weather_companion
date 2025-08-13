@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Prompt This Into Existence! – Orientation App</title>
+  <style>
+    :root{
+      --bg: #0b0f14;
+      --card: #121820;
+      --muted: #a7b3c5;
+      --text: #e8f0fe;
+      --accent: #7c5cff;
+      --accent-2: #40c3ff;
+      --danger: #ff4d6d;
+      --success: #3ddc97;
+      --warning: #ffd166;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background: radial-gradient(1200px 900px at 80% -10%, rgba(64,195,255,0.15), transparent),
+                               radial-gradient(900px 700px at -10% 110%, rgba(124,92,255,0.12), transparent), var(--bg);
+      color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      -webkit-font-smoothing:antialiased;
+    }
+    header{
+      position:sticky; top:0; z-index:10; backdrop-filter:saturate(140%) blur(8px);
+      background:rgba(11,15,20,.6); border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .bar{display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem;}
+    .title{font-size:1rem; font-weight:700; letter-spacing:.2px}
+    .chip{font-size:.72rem; color:var(--muted); border:1px solid rgba(255,255,255,.08); padding:.2rem .5rem; border-radius:999px}
+    main{padding:1rem; max-width:800px; margin:0 auto}
+    .hint{color:var(--muted); font-size:.9rem; margin:.25rem 0 .75rem}
+
+    .grid{display:grid; gap:1rem}
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:1rem; display:none; /* all hidden by default */
+      animation:.25s ease both fadeIn;
+    }
+    @keyframes fadeIn{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+
+    .card.active{display:block}
+    .card h2{margin:.25rem 0 1rem; font-size:1.25rem}
+
+    .row{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap}
+    .stack{display:flex; flex-direction:column; gap:.75rem}
+
+    button, input, select{
+      font:inherit; color:var(--text);
+    }
+    button{
+      min-height:44px; padding:.6rem .9rem; border-radius:12px; border:1px solid rgba(255,255,255,.1);
+      background:linear-gradient(180deg, rgba(124,92,255,.18), rgba(124,92,255,.08));
+      cursor:pointer; touch-action:manipulation; transition:transform .05s ease;
+    }
+    button:active{transform:scale(.98)}
+    button.secondary{background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02))}
+    button.destructive{background:linear-gradient(180deg, rgba(255,77,109,.25), rgba(255,77,109,.12));}
+
+    input[type="time"], input[type="number"], input[type="text"]{
+      min-height:44px; border-radius:12px; border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.04); padding:.5rem .75rem; width:100%;
+    }
+    label{font-size:.85rem; color:var(--muted)}
+
+    .big{font-size:2.25rem; letter-spacing:1px; font-weight:800; text-align:center}
+    .sub{font-size:.9rem; color:var(--muted); text-align:center}
+
+    .pill{display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .6rem; border-radius:999px; background:rgba(255,255,255,.06); font-size:.75rem; color:var(--muted)}
+
+    .footer-hint{margin-top:.75rem; color:var(--muted); font-size:.8rem}
+
+    .divider{height:1px; background:rgba(255,255,255,.08); margin:.5rem 0}
+
+    .cta-bar{position:fixed; inset:auto 0 0 0; display:flex; justify-content:center; padding:.75rem; backdrop-filter:blur(8px) saturate(140%); background:rgba(11,15,20,.7); border-top:1px solid rgba(255,255,255,.06)}
+    .cta-bar .inner{display:flex; gap:.5rem; width:100%; max-width:820px}
+
+    .ok{color:var(--success)}
+    .warn{color:var(--warning)}
+    .bad{color:var(--danger)}
+
+    @media (min-width:700px){
+      main{padding:2rem}
+      .title{font-size:1.1rem}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div class="title">Orientation App — Alarm • Stopwatch • Timer • Weather</div>
+      <span class="chip" id="orientChip">Detecting…</span>
+      <span class="chip" id="permChip">Motion: unknown</span>
+      <span class="chip" id="geoChip">Geo: unknown</span>
+    </div>
+  </header>
+
+  <main>
+    <p class="hint">Rotate your phone to switch features automatically. Works entirely in the browser. Add your OpenWeather API key in the Weather tab when in landscape-left orientation.</p>
+
+    <!-- Alarm Clock (Portrait Upright) -->
+    <section id="alarmCard" class="card">
+      <div class="pill">Portrait ↑ Upright • Alarm Clock</div>
+      <h2>Alarm Clock</h2>
+      <div class="stack">
+        <label for="alarmTime">Alarm time</label>
+        <input id="alarmTime" type="time" />
+        <div class="row">
+          <button id="setAlarmBtn">Set Alarm</button>
+          <button id="clearAlarmBtn" class="secondary">Clear</button>
+        </div>
+        <div class="big" id="alarmNow">--:--:--</div>
+        <div class="sub" id="alarmStatus">No alarm set.</div>
+      </div>
+      <div class="footer-hint">If sound is muted by your browser, tap the page once to allow audio.</div>
+    </section>
+
+    <!-- Stopwatch (Landscape Right-Side Up) -->
+    <section id="stopwatchCard" class="card">
+      <div class="pill">Landscape → Right • Stopwatch</div>
+      <h2>Stopwatch</h2>
+      <div class="big" id="swDisplay">00:00.00</div>
+      <div class="row" style="justify-content:center; gap:.75rem; margin-top:.5rem">
+        <button id="swStart">Start</button>
+        <button id="swStop" class="secondary">Stop</button>
+        <button id="swReset" class="secondary">Reset</button>
+      </div>
+      <div id="swLaps" class="footer-hint"></div>
+    </section>
+
+    <!-- Timer (Portrait Upside Down) -->
+    <section id="timerCard" class="card">
+      <div class="pill">Portrait ↓ Upside Down • Timer</div>
+      <h2>Timer</h2>
+      <div class="row">
+        <label class="visually-hidden" for="tmMinutes">Minutes</label>
+        <input id="tmMinutes" type="number" min="0" placeholder="Minutes" inputmode="numeric" style="max-width:9rem">
+        <label class="visually-hidden" for="tmSeconds">Seconds</label>
+        <input id="tmSeconds" type="number" min="0" max="59" placeholder="Seconds" inputmode="numeric" style="max-width:9rem">
+      </div>
+      <div class="big" id="tmDisplay">00:00</div>
+      <div class="row" style="justify-content:center; gap:.75rem">
+        <button id="tmStart">Start</button>
+        <button id="tmPause" class="secondary">Pause</button>
+        <button id="tmReset" class="secondary">Reset</button>
+      </div>
+      <div class="sub" id="tmStatus"></div>
+    </section>
+
+    <!-- Weather (Landscape Left-Side Up) -->
+    <section id="weatherCard" class="card">
+      <div class="pill">Landscape ← Left • Weather of the Day</div>
+      <h2>Weather</h2>
+      <div class="stack">
+        <div class="row">
+          <input id="owKey" type="text" placeholder="OpenWeather API Key (stored locally)" />
+          <button id="saveKey" class="secondary">Save</button>
+          <button id="loadWeather">Refresh</button>
+        </div>
+        <div class="row">
+          <button id="askGeo" class="secondary">Use My Location</button>
+        </div>
+
+        <!-- Manual city fallback -->
+        <div class="row" style="margin-top:.5rem">
+          <input id="cityInput" type="text" placeholder="City name (e.g., Delhi)" />
+          <button id="cityLookup" class="secondary">Lookup City</button>
+        </div>
+
+        <div id="weatherOut" class="big">—</div>
+        <div id="weatherSub" class="sub"></div>
+      </div>
+      <div class="footer-hint">Your API key is saved only to your device (localStorage). Data: OpenWeather (free tier).</div>
+    </section>
+
+    <div class="divider"></div>
+    <div class="hint">Trouble detecting rotation on iOS? Tap <b>Enable Motion</b> below to grant permission. You can also use your browser’s device toolbar to simulate rotation.</div>
+  </main>
+
+  <div class="cta-bar">
+    <div class="inner">
+      <button id="enableMotion">Enable Motion</button>
+      <button id="enableSound" class="secondary">Enable Sound</button>
+      <button id="testLeft" class="secondary">Simulate Landscape-Left</button>
+      <button id="testRight" class="secondary">Simulate Landscape-Right</button>
+      <button id="testPortraitUp" class="secondary">Simulate Portrait-Up</button>
+      <button id="testPortraitDown" class="secondary">Simulate Portrait-Down</button>
+    </div>
+  </div>
+
+  <script>
+    /* =============================
+       AI PROMPTS 
+       -----------------------------
+       Prompt A (base skeleton): "Create a mobile-first single-file HTML with four feature sections (Alarm, Stopwatch, Timer, Weather) hidden by default and a sticky status bar."
+       Prompt B (orientation): "Write JS that robustly detects portrait-up, portrait-down, landscape-left, landscape-right across Android/iOS using ScreenOrientation, window.orientation, and DeviceOrientationEvent as fallbacks."
+       Prompt C (stopwatch): "Implement a high-precision stopwatch with Start/Stop/Reset using performance.now() and requestAnimationFrame."
+       Prompt D (timer/alarm): "Implement a countdown timer and an alarm clock with time input, human-readable remaining time, and Web Audio beep on finish."
+       Prompt E (weather): "Fetch current weather using OpenWeather by geolocation (lat/lon), with API key saved to localStorage; render summary string and feels-like details."
+       Failed prompt : "Autoplay audio without user gesture" — browsers block this; solved by explicit 'Enable Sound' button.
+    ============================== */
+
+    // Utilities
+    const $ = (sel) => document.querySelector(sel);
+    const show = (id) => {
+      for (const el of document.querySelectorAll('.card')) el.classList.remove('active');
+      $(id).classList.add('active');
+    };
+
+    const orientChip = $('#orientChip');
+    const permChip = $('#permChip');
+    const geoChip = $('#geoChip');
+
+    // ===== Web Audio beep (no external files) =====
+    let audioCtx;
+    function beep(duration=600, frequency=880){
+      try{
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = frequency;
+        o.connect(g); g.connect(audioCtx.destination);
+        g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.3, audioCtx.currentTime + 0.02);
+        o.start();
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration/1000);
+        o.stop(audioCtx.currentTime + duration/1000 + 0.02);
+      }catch(e){ console.warn('Audio blocked until user gesture'); }
+    }
+
+    // Unlock audio via explicit button (required on many mobile browsers)
+    $('#enableSound').addEventListener('click', async () => {
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.frequency.value = 440;
+        o.connect(g); g.connect(audioCtx.destination);
+        g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.01);
+        o.start();
+        setTimeout(()=>{ try{ o.stop(); }catch(e){} }, 50);
+        permChip.textContent = (permChip.textContent || '') + ' • Sound: enabled';
+      } catch(e) {
+        console.warn('Unable to enable audio', e);
+      }
+    });
+
+    // ===== Orientation Detection =====
+    const Orientation = {
+      PORTRAIT_UP: 'portrait-up',
+      PORTRAIT_DOWN: 'portrait-down',
+      LANDSCAPE_LEFT: 'landscape-left',   // left edge down
+      LANDSCAPE_RIGHT: 'landscape-right', // right edge down
+    };
+
+    function angleToOrientation(angle){
+      // Normalize to [0,360)
+      const a = ((angle % 360) + 360) % 360;
+      if (a === 0) return Orientation.PORTRAIT_UP;
+      if (a === 180) return Orientation.PORTRAIT_DOWN;
+      if (a === 90) return Orientation.LANDSCAPE_LEFT;   // many browsers: 90 = left
+      if (a === 270) return Orientation.LANDSCAPE_RIGHT;  // 270 = right
+      // Fallback guess
+      return a < 180 ? Orientation.LANDSCAPE_LEFT : Orientation.LANDSCAPE_RIGHT;
+    }
+
+    function handleOrientationChange(src){
+      const o = getCurrentOrientation();
+      orientChip.textContent = `${o} (${src})`;
+      // Map to features
+      switch(o){
+        case Orientation.PORTRAIT_UP: show('#alarmCard'); break;           // Alarm Clock
+        case Orientation.LANDSCAPE_RIGHT: show('#stopwatchCard'); break;    // Stopwatch
+        case Orientation.PORTRAIT_DOWN: show('#timerCard'); break;          // Timer
+        case Orientation.LANDSCAPE_LEFT: show('#weatherCard'); maybeAutoWeather(); break; // Weather
+      }
+    }
+
+    function getCurrentOrientation(){
+      // 1) Screen Orientation API
+      if (screen.orientation && typeof screen.orientation.angle === 'number'){
+        return angleToOrientation(screen.orientation.angle);
+      }
+      // 2) window.orientation (old iOS Safari)
+      if (typeof window.orientation === 'number'){
+        return angleToOrientation(window.orientation);
+      }
+      // 3) Use DeviceOrientation last-known gamma/beta as heuristic
+      if (lastDevOrient){
+        const {beta, gamma} = lastDevOrient; // beta: front-back tilt, gamma: left-right
+        if (Math.abs(gamma) > Math.abs(beta)){
+          return gamma > 0 ? Orientation.LANDSCAPE_LEFT : Orientation.LANDSCAPE_RIGHT;
+        } else {
+          return beta > 0 ? Orientation.PORTRAIT_DOWN : Orientation.PORTRAIT_UP;
+        }
+      }
+      return Orientation.PORTRAIT_UP;
+    }
+
+    let lastDevOrient = null;
+    function onDeviceOrientation(ev){ lastDevOrient = {beta: ev.beta, gamma: ev.gamma}; }
+
+    function bindOrientationListeners(){
+      window.addEventListener('orientationchange', () => handleOrientationChange('orientationchange'));
+      if (window.DeviceOrientationEvent){
+        window.addEventListener('deviceorientation', onDeviceOrientation, true);
+      }
+      handleOrientationChange('init');
+    }
+
+    async function requestMotionPermission(){
+      const D = window.DeviceMotionEvent || window.DeviceOrientationEvent;
+      if (!D){ permChip.textContent = 'Motion: unsupported'; return; }
+      try{
+        if (typeof D.requestPermission === 'function'){
+          const res = await D.requestPermission();
+          permChip.textContent = `Motion: ${res}`;  
+        } else {
+          permChip.textContent = 'Motion: granted';
+        }
+        bindOrientationListeners();
+      }catch(e){
+        permChip.textContent = 'Motion: denied';
+      }
+    }
+
+    // CTA buttons (simulate for desktop)
+    $('#enableMotion').addEventListener('click', requestMotionPermission);
+    $('#testLeft').addEventListener('click', ()=>{ orientChip.textContent = 'landscape-left (sim)'; show('#weatherCard'); maybeAutoWeather(); });
+    $('#testRight').addEventListener('click', ()=>{ orientChip.textContent = 'landscape-right (sim)'; show('#stopwatchCard'); });
+    $('#testPortraitUp').addEventListener('click', ()=>{ orientChip.textContent = 'portrait-up (sim)'; show('#alarmCard'); });
+    $('#testPortraitDown').addEventListener('click', ()=>{ orientChip.textContent = 'portrait-down (sim)'; show('#timerCard'); });
+
+    // ===== Alarm Clock =====
+    const alarmNowEl = $('#alarmNow');
+    const alarmStatusEl = $('#alarmStatus');
+    const alarmTimeEl = $('#alarmTime');
+    let alarmTarget = null; // Date
+    setInterval(()=>{
+      const now = new Date();
+      alarmNowEl.textContent = now.toLocaleTimeString();
+      if (alarmTarget){
+        const diff = alarmTarget - now;
+        if (diff <= 0){
+          alarmStatusEl.textContent = '⏰ Alarm!';
+          beep(800, 880);
+          alarmTarget = null;
+        } else {
+          alarmStatusEl.textContent = 'Rings in ' + humanizeMs(diff);
+        }
+      }
+    }, 250);
+
+    $('#setAlarmBtn').addEventListener('click', ()=>{
+      const val = alarmTimeEl.value; // "HH:MM"
+      if (!val){ alarmStatusEl.textContent = 'Set a time first.'; return; }
+      const [hh, mm] = val.split(':').map(Number);
+      const now = new Date();
+      const target = new Date();
+      target.setHours(hh, mm, 0, 0);
+      if (target <= now) target.setDate(target.getDate() + 1); // next day
+      alarmTarget = target;
+      alarmStatusEl.textContent = 'Alarm set for ' + target.toLocaleTimeString();
+    });
+    $('#clearAlarmBtn').addEventListener('click', ()=>{
+      alarmTarget = null; alarmStatusEl.textContent = 'No alarm set.';
+    });
+
+    // ===== Stopwatch =====
+    const swDisplay = $('#swDisplay');
+    let swRunning = false, swStartTime = 0, swElapsed = 0, swRaf = 0;
+    function renderStopwatch(){
+      const t = swRunning ? (performance.now() - swStartTime + swElapsed) : swElapsed;
+      swDisplay.textContent = fmtMs(t);
+      if (swRunning) swRaf = requestAnimationFrame(renderStopwatch);
+    }
+    function fmtMs(ms){
+      const totalMs = Math.floor(ms);
+      const m = Math.floor(totalMs/60000);
+      const s = Math.floor((totalMs%60000)/1000);
+      const cs = Math.floor((totalMs%1000)/10);
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(cs).padStart(2,'0')}`;
+    }
+    $('#swStart').addEventListener('click', ()=>{
+      if (!swRunning){ swRunning = true; swStartTime = performance.now(); renderStopwatch(); }
+    });
+    $('#swStop').addEventListener('click', ()=>{
+      if (swRunning){ swRunning = false; swElapsed += performance.now() - swStartTime; cancelAnimationFrame(swRaf); renderStopwatch(); }
+    });
+    $('#swReset').addEventListener('click', ()=>{
+      swRunning = false; swElapsed = 0; cancelAnimationFrame(swRaf); renderStopwatch();
+    });
+    renderStopwatch();
+
+    // ===== Timer =====
+    const tmDisplay = $('#tmDisplay');
+    const tmStatus = $('#tmStatus');
+    let tmLeftMs = 0, tmInterval = null, tmPaused = true;
+
+    function updateTimerUI(){ tmDisplay.textContent = fmtTimer(tmLeftMs); }
+    function fmtTimer(ms){
+      ms = Math.max(0, Math.floor(ms));
+      const sTotal = Math.floor(ms/1000);
+      const m = Math.floor(sTotal/60);
+      const s = sTotal%60;
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    function startTimer(){
+      if (tmLeftMs <= 0) return;
+      tmPaused = false; const start = Date.now();
+      clearInterval(tmInterval);
+      tmInterval = setInterval(()=>{
+        const elapsed = Date.now() - start;
+        tmLeftMs -= 1000; // tick per second
+        if (tmLeftMs <= 0){ tmLeftMs = 0; clearInterval(tmInterval); tmPaused = true; tmStatus.textContent = 'Done!'; beep(800, 660); }
+        updateTimerUI();
+      }, 1000);
+      tmStatus.textContent = 'Running…';
+    }
+
+    $('#tmStart').addEventListener('click', ()=>{
+      if (tmLeftMs <= 0){
+        const m = parseInt($('#tmMinutes').value||'0',10);
+        const s = parseInt($('#tmSeconds').value||'0',10);
+        tmLeftMs = (m*60 + s)*1000;
+      }
+      if (tmLeftMs > 0) startTimer();
+    });
+    $('#tmPause').addEventListener('click', ()=>{
+      if (!tmPaused){ clearInterval(tmInterval); tmPaused = true; tmStatus.textContent = 'Paused'; }
+    });
+    $('#tmReset').addEventListener('click', ()=>{
+      clearInterval(tmInterval); tmLeftMs = 0; tmPaused = true; tmStatus.textContent = ''; updateTimerUI();
+    });
+    updateTimerUI();
+
+    // ===== Weather =====
+    const keyInput = $('#owKey');
+    const btnSaveKey = $('#saveKey');
+    const btnLoadWeather = $('#loadWeather');
+    const btnAskGeo = $('#askGeo');
+    const btnCityLookup = $('#cityLookup');
+    const cityInput = $('#cityInput');
+    const out = $('#weatherOut');
+    const sub = $('#weatherSub');
+    let lastPos = null;
+
+    // Load stored key
+    keyInput.value = localStorage.getItem('ow_key') || '';
+    btnSaveKey.addEventListener('click', ()=>{
+      localStorage.setItem('ow_key', keyInput.value.trim());
+      sub.textContent = 'Saved key locally.';
+    });
+
+    btnAskGeo.addEventListener('click', ()=>{
+      if (!navigator.geolocation){ geoChip.textContent='Geo: unsupported'; return; }
+      navigator.geolocation.getCurrentPosition((pos)=>{
+        lastPos = pos.coords; geoChip.textContent = 'Geo: ok'; loadWeather();
+      }, (err)=>{
+        geoChip.textContent = 'Geo: denied'; sub.textContent = 'Location permission denied. Use city lookup as fallback.';
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    });
+
+    btnLoadWeather.addEventListener('click', loadWeather);
+
+    // City lookup fallback (manual)
+    btnCityLookup.addEventListener('click', async ()=>{
+      const key = (keyInput.value||'').trim();
+      const city = (cityInput.value||'').trim();
+      if (!key){ sub.textContent = 'Save your OpenWeather key first.'; return; }
+      if (!city){ sub.textContent = 'Enter a city name.'; return; }
+      out.textContent = 'Loading…'; sub.textContent = '';
+      try {
+        const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${key}&units=metric`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('API ' + res.status);
+        const data = await res.json();
+        lastPos = { latitude: data.coord.lat, longitude: data.coord.lon };
+        out.textContent = `${data.name} • ${Math.round(data.main.temp)}°C — ${data.weather[0].description.replace(/^./,c=>c.toUpperCase())}`;
+        sub.textContent = `Feels like ${Math.round(data.main.feels_like)}°C • Humidity ${data.main.humidity}% • Wind ${Math.round(data.wind.speed)} m/s`;
+      } catch(err) {
+        console.error(err); out.textContent = 'Weather unavailable'; sub.textContent = String(err);
+      }
+    });
+
+    function maybeAutoWeather(){
+      // If we already have a key + location, auto-fetch on switch
+      if ((localStorage.getItem('ow_key')||'').length >= 16 && lastPos){
+        loadWeather();
+      }
+    }
+
+   // Replace your current loadWeather() with this version
+async function loadWeather(){
+  const key = (keyInput.value||'').trim();
+  if (!key){
+    sub.textContent = 'Enter and save your OpenWeather API key first.';
+    out.textContent = '—';
+    return;
+  }
+
+  // If no geolocation available, allow manual fallback (lastPos may be set previously)
+  if (!lastPos){
+    sub.textContent = 'Tap "Use My Location" to fetch your coordinates or enter coords manually (dev).';
+    out.textContent = '—';
+    return;
+  }
+
+  out.textContent = 'Loading…';
+  sub.textContent = '';
+
+  const {latitude: lat, longitude: lon} = lastPos;
+  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${key}&units=metric`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok){
+      // try to read helpful message from body
+      let body = '';
+      try { body = await res.json(); body = body.message ? ` — ${body.message}` : JSON.stringify(body); }
+      catch(e){ try { body = await res.text(); } catch(e2){ body = ''; } }
+      throw new Error(`API error ${res.status}${body}`);
+    }
+
+    const data = await res.json();
+    if (!data || !data.main){
+      throw new Error('API returned unexpected data: ' + JSON.stringify(data));
+    }
+
+    const city  = data.name || '';
+    const temp  = Math.round(data.main.temp);
+    const feels = Math.round(data.main.feels_like || data.main.temp);
+    const humidity = data.main.humidity ?? 'n/a';
+    const wind = Math.round((data.wind && data.wind.speed) || 0);
+    const desc = (data.weather && data.weather[0] && data.weather[0].description)
+                 ? data.weather[0].description.replace(/^./, c=>c.toUpperCase())
+                 : 'Unknown';
+
+    out.textContent = `${city ? city + ' • ' : ''}${temp}°C — ${desc}`;
+    sub.textContent = `Feels like ${feels}°C • Humidity ${humidity}% • Wind ${wind} m/s`;
+  } catch (err) {
+    console.error('loadWeather error:', err);
+    out.textContent = 'Weather unavailable';
+    sub.textContent = `Error: ${err.message || String(err)}. Check API key, network, and that site is served over HTTPS for geolocation.`;
+  }
+}
+
+
+    function humanizeMs(ms){
+      const s = Math.max(0, Math.floor(ms/1000));
+      const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), ss = s%60;
+      const parts = [];
+      if (h) parts.push(h + 'h'); if (m) parts.push(m + 'm'); parts.push(ss + 's');
+      return parts.join(' ');
+    }
+
+    // Initialize on load
+    (function init(){
+      // Optimistically bind; iOS may still require permission
+      bindOrientationListeners();
+      // Try to read geo from a previous session via Permissions API (non-blocking)
+      if (navigator.permissions && navigator.permissions.query){
+        navigator.permissions.query({name:'geolocation'}).then(res=>{
+          geoChip.textContent = 'Geo: ' + res.state;
+        }).catch(()=>{});
+      }
+      if (keyInput.value) sub.textContent = 'API key loaded from localStorage.';
+    })();
+  </script>
+</body>
+</html>
